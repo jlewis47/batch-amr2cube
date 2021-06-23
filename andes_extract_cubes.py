@@ -26,61 +26,72 @@ print('************************************************************')
 print('Extracting %s in %s'%(types[type_int],', '.join(outputs)))
 print('************************************************************\n\n')
 
-
+nodes=1
+ntaskspn=1
 
 sub_nb=0
 frac=1./16
 Nfrac=int(np.round(1/frac))
+Njobs=1 #number of .slurm scripts we need to make
+Ntasks_per_job= Nfrac**3 #per output
 
-
-tot_time_mm = 5*len(outputs)*Nfrac**3 #1min par fichier
+tot_time_mm = 6*Ntasks_per_job #6min par snapshot
 
 hh,mm,ss = tot_time_mm//60,tot_time_mm%60,0
 
+overstep=hh>=48
 
-if hh>=48:
-    print('WARNING: Overstepped maximum walltime for one node, setting walltime to maximum')
+if overstep:
+    print('WARNING: Overstepped maximum walltime for one node, dividing job into several .slurm files')
+
+    Njobs=np.int(np.ceil(hh/48))
+    Ntasks_per_job=int(np.ceil(Ntasks_per_job/Njobs))
     hh,mm,ss=48,00,00
     
-nodes=1
-ntaskspn=1
+for output,in_path,output_path in zip(outputs,in_paths,out_paths):
 
+    ijob=0
+    
+    fname = 'extract_%s_%s_%i.slurm'%(types[type_int],output,ijob)
 
-
-fname = 'extract_%s_%s.slurm'%(types[type_int],', '.join(outputs))
-
-
-with open(os.path.join('.',fname),'w') as pbs_file:
+    pbs_file=open(os.path.join('.',fname),'w')
 
     hdr=get_header_txt(out_path,nodes,ntaskspn,hh,mm,ss)
 
     pbs_file.write(hdr)
 
+    
+    if not os.path.isdir(out_path) : os.makedirs(output_path)
 
-    for output,in_path,output_path in zip(outputs,in_paths,out_paths):
-                    
-        if not os.path.isdir(out_path) : os.makedirs(output_path)
-
-        print('Found %s, queueing amr2cube ...'%output)
+    print('Found %s, queueing amr2cube ...'%output)
 
     
-        for xfrac in range(Nfrac):
-            for yfrac in range(Nfrac):
-                for zfrac in range(Nfrac):
+    for xfrac in range(Nfrac):
+        for yfrac in range(Nfrac):
+            for zfrac in range(Nfrac):
                 
 
-                    xmin,xmax=xfrac*frac,(xfrac+1)*frac
-                    ymin,ymax=yfrac*frac,(yfrac+1)*frac
-                    zmin,zmax=zfrac*frac,(zfrac+1)*frac                    
+                xmin,xmax=xfrac*frac,(xfrac+1)*frac
+                ymin,ymax=yfrac*frac,(yfrac+1)*frac
+                zmin,zmax=zfrac*frac,(zfrac+1)*frac                    
 
-                    write_path=os.path.join(out_path,output,'%s_%05d'%(types[type_int],sub_nb))
+                write_path=os.path.join(out_path,output,'%s_%05d'%(types[type_int],sub_nb))
                     
-                    amr2cube_line=get_run_txt(in_path,write_path,type_int,types[type_int],xmin,xmax,ymin,ymax,zmin,zmax)
-                    pbs_file.write(amr2cube_line)
+                amr2cube_line=get_run_txt(in_path,write_path,type_int,types[type_int],xmin,xmax,ymin,ymax,zmin,zmax)
+                pbs_file.write(amr2cube_line)
 
-                    sub_nb+=1
+                sub_nb+=1
+                if sub_nb%Ntasks_per_job==0:
+                    print('triggered, %i, %i'%(sub_nb,Ntasks_per_job))
                     
+                    pbs_file.close()
 
+                    ijob+=1
+
+                    fname = 'extract_%s_%s_%i.slurm'%(types[type_int],output,ijob)
+                    pbs_file=open(os.path.join('.',fname),'w')	
+                    
+                    pbs_file.write(hdr)
 
 
 #exec_file = os.path.join(out_path,'amr2cube_andes')
