@@ -73,7 +73,7 @@ with open(os.path.join('.',fname),'w') as pbs_file:
                     ymin,ymax=yfrac*frac,(yfrac+1)*frac
                     zmin,zmax=zfrac*frac,(zfrac+1)*frac                    
 
-                    write_path=os.path.join(out_path,'%s_%05d'%(types[type_int],sub_nb))
+                    write_path=os.path.join(out_path,output,'%s_%05d'%(types[type_int],sub_nb))
                     
                     amr2cube_line=get_run_txt(in_path,write_path,type_int,types[type_int],xmin,xmax,ymin,ymax,zmin,zmax)
                     pbs_file.write(amr2cube_line)
