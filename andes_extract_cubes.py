@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from shutil import copyfile
+#from shutil import copyfile
 from andes_run_amr2cube import get_header_txt,get_run_txt
 
 
@@ -69,7 +69,11 @@ for output,in_path,output_path in zip(outputs,in_paths,out_paths):
     for xfrac in range(Nfrac):
         for yfrac in range(Nfrac):
             for zfrac in range(Nfrac):
-                
+
+                #use this if for some reason some tasks didn't complete (add the sub_nb/task nb in this list and uncomment
+                # if sub_nb not in [552,558,559,574,575,627,628,643,644,666,686,687,702,703,814,815,830,831,883,884,899,900,942,943,958,959,1349,1570,1571,1586,1587,1766,1767,1782,1783,1826,1827,1828,1842,1843,1844,2022,2023,2038,2039,2083,2084,2099,2100,2200,2314,2675,2676,2691,2692,2878,2879,2894,2895,2931,2932,2947,2948,3006,3007,3022,3023,3134,3135,3150,3151,3262,3263,3278,3279,3313,3584,3591,3592,3599,3703,3704,3719,3720,3814,3815,3824,3830,3831,3832,3839,3840,3846,3847,3848,3855,3943,3944,3959,3960,3975,3976,4070,4071,4072,4080,4086,4087,4088,4095] :
+                #     sub_nb+=1
+                #     continue
 
                 xmin,xmax=xfrac*frac,(xfrac+1)*frac
                 ymin,ymax=yfrac*frac,(yfrac+1)*frac
@@ -81,6 +85,9 @@ for output,in_path,output_path in zip(outputs,in_paths,out_paths):
                 pbs_file.write(amr2cube_line)
 
                 sub_nb+=1
+
+                if sub_nb%ntaskspn==0:pbs_file.write('wait\n') #needed or we exit without some jobs being run!
+                
                 if sub_nb%Ntasks_per_job==0:
                     print('triggered, %i, %i'%(sub_nb,Ntasks_per_job))
 
